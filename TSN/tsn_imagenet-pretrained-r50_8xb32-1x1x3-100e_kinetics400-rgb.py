@@ -42,7 +42,8 @@ train_pipeline = [
     dict(type='PackActionInputs')
 ]
 
-# validation pipeline
+# validation 파이프라인
+# 데이터 증강 X
 val_pipeline = [
     dict(type='DecordInit', **file_client_args),
     dict(
@@ -53,10 +54,14 @@ val_pipeline = [
         test_mode=True),
     dict(type='DecordDecode'),
     dict(type='Resize', scale=(-1, 256)),
+    # 중앙 크롭으로 평가 정교화
     dict(type='CenterCrop', crop_size=224),
     dict(type='FormatShape', input_format='NCHW'),
     dict(type='PackActionInputs')
 ]
+
+# test 파이프라인
+# 데이터 증강 X
 test_pipeline = [
     dict(type='DecordInit', **file_client_args),
     dict(
@@ -67,21 +72,29 @@ test_pipeline = [
         test_mode=True),
     dict(type='DecordDecode'),
     dict(type='Resize', scale=(-1, 256)),
+    # 평가 정교화
     dict(type='TenCrop', crop_size=224),
     dict(type='FormatShape', input_format='NCHW'),
     dict(type='PackActionInputs')
 ]
 
+# train 데이터 로드
 train_dataloader = dict(
+    # 배치 & 병렬 처리 수
     batch_size=32,
     num_workers=8,
+    # worker 프로세서 고정; 속도 향상
     persistent_workers=True,
+
+    # shuffle; True면 학습용, False면 평가용
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         ann_file=ann_file_train,
         data_prefix=dict(video=data_root),
         pipeline=train_pipeline))
+
+# validation 데이터 로드
 val_dataloader = dict(
     batch_size=32,
     num_workers=8,
@@ -92,7 +105,11 @@ val_dataloader = dict(
         ann_file=ann_file_val,
         data_prefix=dict(video=data_root_val),
         pipeline=val_pipeline,
+        
+        # test_mode; true면 라벨 무시하고 평가
         test_mode=True))
+
+# test 데이터 로드
 test_dataloader = dict(
     batch_size=1,
     num_workers=8,
@@ -103,15 +120,21 @@ test_dataloader = dict(
         ann_file=ann_file_val,
         data_prefix=dict(video=data_root_val),
         pipeline=test_pipeline,
+        # test_mode; true면 라벨 무시하고 평가
         test_mode=True))
 
+# 정확도 계산 evaluator
 val_evaluator = dict(type='AccMetric')
 test_evaluator = val_evaluator
 
+# 3 에포크마다 모델 저장하고 최대 3개 보관
 default_hooks = dict(checkpoint=dict(interval=3, max_keep_ckpts=3))
 
 # Default setting for scaling LR automatically
 #   - `enable` means enable scaling LR automatically
 #       or not by default.
 #   - `base_batch_size` = (8 GPUs) x (32 samples per GPU).
+'''
+GPU 수에 따라서 우리가 조정해야 할 지?.. enable=True 하면 학습률 자동 조정됨
+'''
 auto_scale_lr = dict(enable=False, base_batch_size=256)
