@@ -83,18 +83,33 @@ class TSNHead(BaseHead):
             Tensor: The classification scores for input samples.
         """
         # [N * num_segs, in_channels, 7, 7]
+        """
+        ① 공간 평균
+        : 각 프레임에서 공간적 피처로 
+        """
         if self.avg_pool is not None:
             if isinstance(x, tuple):
                 shapes = [y.shape for y in x]
                 assert 1 == 0, f'x is tuple {shapes}'
             x = self.avg_pool(x)
             # [N * num_segs, in_channels, 1, 1]
+
+        """
+        ② 시간 평균
+        : dim=1이 시간축; 프레임 단위의 feature들을 평균 냄
+        -> tsn_r50 파일 참조
+        consensus=dict(type='AvgConsensus', dim=1)
+        """
         x = x.reshape((-1, num_segs) + x.shape[1:])
         # [N, num_segs, in_channels, 1, 1]
         x = self.consensus(x)
         # [N, 1, in_channels, 1, 1]
         x = x.squeeze(1)
         # [N, in_channels, 1, 1]
+
+        """
+        ③ FC 통과 → ④ 클래스별 예측 점수 출력
+        """
         if self.dropout is not None:
             x = self.dropout(x)
             # [N, in_channels, 1, 1]

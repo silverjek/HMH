@@ -17,12 +17,17 @@ file_client_args = dict(io_backend='disk')
 
 # 훈련 파이프라인
 train_pipeline = [
-    # 비디오 디코더
+    # ⭐️ 아래 세개 모두 mmaction/datasets/transforms/loading.py 참조
+    
+    # 비디오 디코더; 비디오 파일을 읽기 위한 VideoReader를 생성
     dict(type='DecordInit', **file_client_args),
-    # 한 비디오에서 3개의 프레임 샘플링
+    # 한 비디오에서 3개의 프레임 샘플링; 전체 프레임 수 기준으로 어떤 프레임 인덱스를 샘플링할지 결정해서 frame_inds key에 저장
     dict(type='SampleFrames', clip_len=1, frame_interval=1, num_clips=3),
-    # 프레임 디코딩
+    # 프레임 디코딩; 지정된 frame_inds에 따라 실제 RGB 이미지 프레임을 디코딩해 results['imgs']에 저장
     dict(type='DecordDecode'),
+    
+    # ⚠️ 대표 프레임(스니펫) 저장 모듈 추가 필요
+
     # 짧은 변 기준 256 리사이징
     dict(type='Resize', scale=(-1, 256)),
     dict(
@@ -53,6 +58,9 @@ val_pipeline = [
         num_clips=3,
         test_mode=True),
     dict(type='DecordDecode'),
+
+    # ⚠️ 대표 프레임(스니펫) 저장 모듈 추가 필요
+
     dict(type='Resize', scale=(-1, 256)),
     # 중앙 크롭으로 평가 정교화
     dict(type='CenterCrop', crop_size=224),
@@ -71,6 +79,9 @@ test_pipeline = [
         num_clips=25,
         test_mode=True),
     dict(type='DecordDecode'),
+
+    # ⚠️ 대표 프레임(스니펫) 저장 모듈 추가 필요
+
     dict(type='Resize', scale=(-1, 256)),
     # 평가 정교화
     dict(type='TenCrop', crop_size=224),
