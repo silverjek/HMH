@@ -135,6 +135,7 @@ test_dataloader = dict(
         test_mode=True))
 
 # 정확도 계산 evaluator
+# ⭐️ mmaction/evaluation/metrics/acc_metric.py 참조
 val_evaluator = dict(type='AccMetric')
 test_evaluator = val_evaluator
 
